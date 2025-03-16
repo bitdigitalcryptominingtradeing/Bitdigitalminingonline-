@@ -108,7 +108,6 @@
             padding: 8px;
             box-sizing: border-box;
         }
-
     </style>
 </head>
 <body>
@@ -119,20 +118,20 @@
         <div class="overview">
             <div class="card">
                 <div class="icon">👤</div>
-                <p>Welcome user</p>
+                <p>Welcome <span id="username">User</span></p>
             </div>
             <div class="card">
                 <div class="icon">💳</div>
-                <p>Your Balance: <span id="usd-value">0.00</span></p>
+                <p>Your Balance: $<span id="usd-value">0.00</span></p>
                 <button onclick="showTransactionForm('withdraw')">Withdraw</button>
             </div>
             <div class="card">
                 <div class="icon">🎁</div>
-                <p>Added Bonus: 0.00</p>
+                <p>Added Bonus: $<span id="bonus-value">0.00</span></p>
             </div>
             <div class="card">
                 <div class="icon">📤</div>
-                <p>Completed Withdrawals: <span id="completed-withdrawals">0.00</span></p>
+                <p>Completed Withdrawals: $<span id="completed-withdrawals">0.00</span></p>
                 <button onclick="showTransactionForm('deposit')">Deposit</button>
             </div>
         </div>
@@ -140,27 +139,20 @@
 
     <div id="transactionForm">
         <h2 id="formTitle">Transaction Form</h2>
-        <label for="fullName">Full Name:</label>
-        <input type="text" id="fullName">
-        <label for="accountNumber">Account Number:</label>
-        <input type="text" id="accountNumber">
-        <label for="bankName">Bank Name:</label>
-        <input type="text" id="bankName">
         <label for="amount">Amount:</label>
         <input type="number" id="amount">
         <button onclick="processTransaction()">Confirm</button>
     </div>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+<script type="module">
+  // Import Firebase SDKs
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+  import { getDatabase, ref, get, set, update, onValue } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-database.js";
+
+  // Firebase Configuration
   const firebaseConfig = {
-    apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U",
+    apiKey: "AIzaSyAEG26ip...",
     authDomain: "bitdigitalminingonline-40520.firebaseapp.com",
     databaseURL: "https://bitdigitalminingonline-40520-default-rtdb.firebaseio.com",
     projectId: "bitdigitalminingonline-40520",
@@ -172,71 +164,71 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            loadUser();
-            updateBalance();
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  let currentUserId = null;
+
+  // Function to Fetch User Data
+  function fetchUserData(userId) {
+    const userRef = ref(db, "users/" + userId);
+    onValue(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        document.getElementById("username").innerText = data.username || "User";
+        document.getElementById("usd-value").innerText = data.balance?.toFixed(2) || "0.00";
+        document.getElementById("bonus-value").innerText = data.bonus?.toFixed(2) || "0.00";
+        document.getElementById("completed-withdrawals").innerText = data.withdrawals?.toFixed(2) || "0.00";
+      }
+    });
+  }
+
+  // Function to Process Transactions
+  function processTransaction() {
+    const amount = parseFloat(document.getElementById("amount").value);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+
+    const userRef = ref(db, "users/" + currentUserId);
+    get(userRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        let data = snapshot.val();
+        let newBalance = data.balance || 0;
+        let newWithdrawals = data.withdrawals || 0;
+
+        if (transactionType === "withdraw") {
+          if (amount > newBalance) {
+            alert("Insufficient balance.");
+            return;
+          }
+          newBalance -= amount;
+          newWithdrawals += amount;
+          alert("Successful withdrawal processing. Contact support.");
+        } else {
+          newBalance += amount;
+          alert("Deposit successful!");
+        }
+
+        update(userRef, {
+          balance: newBalance,
+          withdrawals: newWithdrawals
         });
+      }
+    });
+  }
 
-        let user = { balance: 0 };
-        let transactionType = "withdraw"; // Default
-
-        function loadUser() {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                user = JSON.parse(storedUser);
-            }
-        }
-
-        function saveUser() {
-            localStorage.setItem('user', JSON.stringify(user));
-        }
-
-        function updateBalance() {
-            document.getElementById("usd-value").innerText = user.balance.toFixed(2);
-        }
-
-        function showTransactionForm(type) {
-            transactionType = type;
-            document.getElementById("transactionForm").style.display = "block";
-
-            if (type === "withdraw") {
-                document.getElementById("formTitle").innerText = "Withdrawal Form";
-            } else {
-                document.getElementById("formTitle").innerText = "Deposit Form";
-            }
-        }
-
-        function processTransaction() {
-            const fullName = document.getElementById("fullName").value;
-            const accountNumber = document.getElementById("accountNumber").value;
-            const bankName = document.getElementById("bankName").value;
-            const amount = parseFloat(document.getElementById("amount").value);
-
-            if (!amount || isNaN(amount) || amount <= 0) {
-                alert("Please enter a valid amount.");
-                return;
-            }
-
-            if (transactionType === "withdraw") {
-                if (amount > user.balance) {
-                    alert("Insufficient balance.");
-                    return;
-                }
-                user.balance -= amount;
-                alert("Successful withdrawal processing. Contact Coach Banana.");
-            } else if (transactionType === "deposit") {
-                user.balance += amount;
-                alert("Deposit successful!");
-            }
-
-            saveUser();
-            updateBalance();
-            document.getElementById("transactionForm").style.display = "none";
-        }
-    </script>
+  // Auth State Listener to Get Logged-in User
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUserId = user.uid;
+      fetchUserData(user.uid);
+    } else {
+      window.location.href = "login.html"; // Redirect to login if not logged in
+    }
+  });
+</script>
 
 </body>
 </html>
