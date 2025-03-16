@@ -21,8 +21,15 @@
       border-radius: 8px;
       width: 300px;
     }
-    .container h2 { text-align: center; }
-    .container input, .container select {
+    .container h2 {
+      text-align: center;
+    }
+    .container label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .container input,
+    .container select {
       width: 100%;
       padding: 8px;
       margin-bottom: 10px;
@@ -46,9 +53,21 @@
     }
     .error-message { color: red; }
     .success-message { color: green; }
-    .loading { display: none; text-align: center; color: yellow; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    .link-text {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .link-text a {
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -57,123 +76,159 @@
     <div id="login" class="tab-content active">
       <h2>Login</h2>
       <form id="login-form">
-        <input type="email" id="loginEmail" placeholder="Email" required>
-        <input type="password" id="loginPassword" placeholder="Password" required>
+        <label for="loginEmail">Email:</label>
+        <input type="email" id="loginEmail" required>
+
+        <label for="loginPassword">Password:</label>
+        <input type="password" id="loginPassword" required>
+
         <button type="button" id="loginButton">Login</button>
-        <p class="loading" id="loginLoading">Logging in...</p>
         <div id="loginErrorMessage" class="error-message"></div>
-        <p class="link-text"><a onclick="switchToSignup()">Sign up</a></p>
+        <div id="loginSuccessMessage" class="success-message"></div>
+
+        <p class="link-text">
+          Don't have an account yet?
+          <a onclick="switchToSignup()">Sign up</a>
+        </p>
       </form>
     </div>
 
     <div id="signup" class="tab-content">
       <h2>Sign Up</h2>
       <form id="signup-form">
-        <input type="text" id="fullName" placeholder="Full Name" required>
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="email" id="email" placeholder="Email" required>
-        <input type="tel" id="number" placeholder="Phone Number" required>
-        <select id="country" required>
-          <option value="">Select Country</option>
-          <option value="USA">USA</option>
-          <option value="Canada">Canada</option>
-          <option value="UK">UK</option>
-          <option value="Australia">Australia</option>
-          <option value="India">India</option>
-        </select>
-        <input type="password" id="password" placeholder="Password" required>
-        <input type="number" id="securityQuestion" placeholder="8 + 5 - 9 =" required>
+        <label for="fullName">Full Name:</label>
+        <input type="text" id="fullName" required>
+
+        <label for="username">Username:</label>
+        <input type="text" id="username" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+
+
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" required>
+
+        <label for="securityQuestion">Security Question: 8 + 5 - 9 =</label>
+        <input type="number" id="securityQuestion" required>
+
         <button type="button" id="signupButton">Sign Up</button>
-        <p class="loading" id="signupLoading">Signing up...</p>
         <div id="signupErrorMessage" class="error-message"></div>
-        <p class="link-text"><a onclick="switchToLogin()">Login</a></p>
+        <div id="signupSuccessMessage" class="success-message"></div>
+
+        <p class="link-text">
+          Already have an account?
+          <a onclick="switchToLogin()">Click here to login</a>
+        </p>
       </form>
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U",
-      authDomain: "bitdigitalminingonline-40520.firebaseapp.com",
-      databaseURL: "https://bitdigitalminingonline-40520-default-rtdb.firebaseio.com",
-      projectId: "bitdigitalminingonline-40520",
-      storageBucket: "bitdigitalminingonline-40520.appspot.com",
-      messagingSenderId: "280416066270",
-      appId: "1:280416066270:web:210532fbb40fd13f25804f",
-      measurementId: "G-TGG8B41KGT"
-    };
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U",
+    authDomain: "bitdigitalminingonline-40520.firebaseapp.com",
+    projectId: "bitdigitalminingonline-40520",
+    storageBucket: "bitdigitalminingonline-40520.appspot.com",
+    messagingSenderId: "280416066270",
+    appId: "1:280416066270:web:210532fbb40fd13f25804f"
+  };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const db = getFirestore();
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    // Handle Login
-    document.getElementById("loginButton").addEventListener("click", async () => {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
-      const errorMessage = document.getElementById("loginErrorMessage");
-      const loading = document.getElementById("loginLoading");
+  // Wait for DOM to Load
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM fully loaded");
 
-      loading.style.display = "block";
-      errorMessage.innerHTML = "";
+    // Login Button Click Event
+    document.getElementById("loginButton").addEventListener("click", function () {
+      console.log("Login button clicked"); // Debugging
 
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        alert("Login Successful");
-        window.location.href = "dashboard.html"; // Redirect to dashboard
-      } catch (error) {
-        errorMessage.innerHTML = error.message;
-      }
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const errorMessageDiv = document.getElementById('loginErrorMessage');
+      const successMessageDiv = document.getElementById('loginSuccessMessage');
 
-      loading.style.display = "none";
-    });
-
-    // Handle Sign Up
-    document.getElementById("signupButton").addEventListener("click", async () => {
-      const fullName = document.getElementById("fullName").value;
-      const username = document.getElementById("username").value;
-      const email = document.getElementById("email").value;
-      const phone = document.getElementById("number").value;
-      const country = document.getElementById("country").value;
-      const password = document.getElementById("password").value;
-      const errorMessage = document.getElementById("signupErrorMessage");
-      const loading = document.getElementById("signupLoading");
-
-      if (!fullName || !username || !email || !phone || !country || !password) {
-        errorMessage.innerHTML = "All fields are required!";
+      if (!email || !password) {
+        errorMessageDiv.textContent = "Please fill in both fields.";
         return;
       }
 
-      loading.style.display = "block";
-      errorMessage.innerHTML = "";
+      // Firebase Sign-In
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => {
+          console.log("Login successful"); // Debugging
+          successMessageDiv.textContent = "Login successful! Redirecting...";
+          errorMessageDiv.textContent = "";
+
+          setTimeout(() => {
+            window.location.href = "dashboard.html";
+          }, 2000);
+        })
+        .catch(error => {
+          console.error("Login error:", error.message); // Debugging
+          errorMessageDiv.textContent = error.message;
+          successMessageDiv.textContent = "";
+        });
+    });
+
+    // Signup Button Click Event
+    document.getElementById("signupButton").addEventListener("click", async function () {
+      console.log("Signup button clicked"); // Debugging
+
+      const fullName = document.getElementById('fullName').value;
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const number = document.getElementById('number').value;
+      const country = document.getElementById('country').value;
+      const currency = document.getElementById('currency').value;
+      const password = document.getElementById('password').value;
+      const securityAnswer = parseInt(document.getElementById('securityQuestion').value);
+      const errorMessageDiv = document.getElementById('signupErrorMessage');
+      const successMessageDiv = document.getElementById('signupSuccessMessage');
+
+      if (securityAnswer !== 4) {
+        errorMessageDiv.textContent = "Incorrect security answer.";
+        return;
+      }
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Save user details to Firestore
-        await setDoc(doc(db, "users", user.uid), {
-          fullName,
-          username,
-          email,
-          phone,
-          country
-        });
+        await setDoc(doc(db, "users", user.uid), { fullName, username, email, number, country, currency });
 
-        alert("Signup Successful");
-        window.location.href = "dashboard.html"; // Redirect to dashboard
+        successMessageDiv.textContent = "Sign-up successful! Redirecting...";
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 2000);
       } catch (error) {
-        errorMessage.innerHTML = error.message;
+        console.error("Signup error:", error.message); // Debugging
+        errorMessageDiv.textContent = error.message;
       }
-
-      loading.style.display = "none";
     });
-  </script>
+  });
+
+  // Switch Tabs
+  window.switchToSignup = function () {
+    document.getElementById("login").classList.remove("active");
+    document.getElementById("signup").classList.add("active");
+  };
+
+  window.switchToLogin = function () {
+    document.getElementById("signup").classList.remove("active");
+    document.getElementById("login").classList.add("active");
+  };
+</script>
 
 </body>
 </html>
