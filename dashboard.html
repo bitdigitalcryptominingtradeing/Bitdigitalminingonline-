@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Overview</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0a2740;
+            color: #ffcc00;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        /* Dashboard Container */
+        .dashboard {
+            width: 90%;
+            max-width: 800px;
+            padding: 20px;
+            background: #092135;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Two Columns Layout */
+        .overview {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            justify-items: center;
+            width: 100%;
+        }
+
+        /* Card Style */
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            width: 100%;
+            max-width: 250px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: #092135;
+        }
+
+        /* Buttons */
+        .card button {
+            background-color: #ffcc00;
+            color: #092135;
+            border: none;
+            border-radius: 5px;
+            padding: 7px 15px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .card button:hover {
+            background-color: #e6b800;
+        }
+
+        /* Forms */
+        #transactionForm {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+            color: #092135;
+            text-align: left;
+        }
+        #transactionForm input, #transactionForm button {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <h1>Account Overview</h1>
+
+        <div class="overview">
+            <div class="card">
+                <div class="icon">👤</div>
+                <p id="username">Welcome User</p>
+            </div>
+            <div class="card">
+                <div class="icon">💳</div>
+                <p>Your Balance: $<span id="usd-value">0.00</span></p>
+                <button onclick="showTransactionForm('withdraw')">Withdraw</button>
+            </div>
+            <div class="card">
+                <div class="icon">🎁</div>
+                <p>Added Bonus: $<span id="added-bonus">0.00</span></p>
+            </div>
+            <div class="card">
+                <div class="icon">📤</div>
+                <p>Completed Withdrawals: $<span id="completed-withdrawals">0.00</span></p>
+                <button onclick="showTransactionForm('deposit')">Deposit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="transactionForm">
+        <h2 id="form-title">Transaction Form</h2>
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount">
+        <button onclick="processTransaction()">Confirm</button>
+    </div>
+
+    <script type="module">
+        // Import Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8CJGR5x-iKyfs9J_p0aBdpn9-TWUERQs",
+            authDomain: "legal-trade-cryptocurrency.firebaseapp.com",
+            projectId: "legal-trade-cryptocurrency",
+            storageBucket: "legal-trade-cryptocurrency.firebasestorage.app",
+            messagingSenderId: "461227057157",
+            appId: "1:461227057157:web:9262807e0aed807a7ebc6c"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let transactionType = ""; // To store whether it's a deposit or withdrawal
+
+        function showTransactionForm(type) {
+            transactionType = type;
+            document.getElementById("form-title").innerText = type === "deposit" ? "Deposit Form" : "Withdrawal Form";
+            document.getElementById("transactionForm").style.display = "block";
+        }
+
+        async function processTransaction() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("User not logged in.");
+                return;
+            }
+
+            const amount = parseFloat(document.getElementById("amount").value);
+            if (isNaN(amount) || amount <= 0) {
+                alert("Enter a valid amount.");
+                return;
+            }
+
+            const userDocRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userDocRef);
+
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                if (transactionType === "deposit") {
+                    await updateDoc(userDocRef, { balance: userData.balance + amount });
+                    alert("Deposit successful!");
+                } else if (transactionType === "withdraw" && userData.balance >= amount) {
+                    await updateDoc(userDocRef, { balance: userData.balance - amount });
+                    alert("Withdrawal processed!");
+                } else {
+                    alert("Insufficient funds.");
+                }
+                loadUserData(user); // Refresh UI
+            }
+            document.getElementById("transactionForm").style.display = "none";
+        }
+
+        function loadUserData(user) {
+            if (user) {
+                const userDocRef = doc(db, "users", user.uid);
+                getDoc(userDocRef).then((docSnap) => {
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        document.getElementById("username").innerText = `Welcome ${userData.username}`;
+                        document.getElementById("usd-value").innerText = userData.balance.toFixed(2);
+                        document.getElementById("added-bonus").innerText = userData.bonus.toFixed(2);
+                        document.getElementById("completed-withdrawals").innerText = userData.withdrawals.toFixed(2);
+                    } else {
+                        console.log("No user data found!");
+                    }
+                });
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadUserData(user);
+            }
+        });
+
+    </script>
+
+</body>
+</html>
