@@ -1,12 +1,12 @@
+Help me add it to this file 
+I mean only the SKD for username automatically update and admin access to update balance bonus and withdrawal in Firestore 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Overview</title>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
     <style>
         /* ... (Your existing CSS) ... */
         #adminControls {
@@ -53,88 +53,54 @@
             <button onclick="updateAdminValues()">Update</button>
         </div>
 
-        <div id="withdrawalForm"></div>
+        <div id="withdrawalForm">
+            </div>
     </div>
 
     <script>
-        // Initialize Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyC8CJGR5x-iKyfs9J_p0aBdpn9-TWUERQs",
-            authDomain: "legal-trade-cryptocurrency.firebaseapp.com",
-            databaseURL: "https://legal-trade-cryptocurrency-default-rtdb.firebaseio.com",
-            projectId: "legal-trade-cryptocurrency",
-            storageBucket: "legal-trade-cryptocurrency.firebasestorage.app",
-            messagingSenderId: "461227057157",
-            appId: "1:461227057157:web:9262807e0aed807a7ebc6c",
-            measurementId: "G-JY7WMPNR0H"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
-        let user = { username: "Guest", balance: 0, bonus: 0, withdrawals: 0, isAdmin: false };
-
-        // Load user data on login
-        auth.onAuthStateChanged(firebaseUser => {
-            if (firebaseUser) {
-                const uid = firebaseUser.uid;
-                document.getElementById("usernameDisplay").innerText = `Username: ${firebaseUser.displayName || "User"}`;
-                document.getElementById("welcomeMessage").innerText = `Welcome, ${firebaseUser.displayName || "User"}!`;
-
-                // Fetch user data from Firestore
-                db.collection("users").doc(uid).get().then(doc => {
-                    if (doc.exists) {
-                        let data = doc.data();
-                        user.balance = data.balance || 0;
-                        user.bonus = data.bonus || 0;
-                        user.withdrawals = data.withdrawals || 0;
-                        user.isAdmin = data.role === "admin";
-
-                        // Update display
-                        updateDisplay();
-
-                        // Show admin panel if user is an admin
-                        if (user.isAdmin) {
-                            document.getElementById("adminControls").style.display = "block";
-                        }
-                    }
-                });
-            } else {
-                document.getElementById("welcomeMessage").innerText = "Please log in";
-            }
+        document.addEventListener("DOMContentLoaded", function () {
+            loadUser();
+            updateDisplay();
         });
 
+        let user = { username: "guest", balance: 0, bonus: 0, withdrawals: 0, isAdmin: false }; // Default user
+
+        function loadUser() {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                user = JSON.parse(storedUser);
+            } else { //For testing Purposes.
+              user = { username: "Test User", balance: 100, bonus: 10, withdrawals: 1, isAdmin: false };
+            }
+            if (user.isAdmin) {
+                document.getElementById("adminControls").style.display = "block";
+            }
+        }
+
+        function saveUser() {
+            localStorage.setItem('user', JSON.stringify(user));
+        }
+
         function updateDisplay() {
+            document.getElementById("welcomeMessage").innerText = `Welcome, ${user.username}!`;
+            document.getElementById("usernameDisplay").innerText = `Username: ${user.username}`;
             document.getElementById("usd-value").innerText = user.balance.toFixed(2);
             document.getElementById("bonusDisplay").innerText = user.bonus.toFixed(2);
             document.getElementById("withdrawalsDisplay").innerText = user.withdrawals.toFixed(2);
         }
 
         function updateAdminValues() {
-            const uid = auth.currentUser ? auth.currentUser.uid : null;
-            if (user.isAdmin && uid) {
-                let newBalance = parseFloat(document.getElementById("newBalance").value);
-                let newBonus = parseFloat(document.getElementById("newBonus").value);
-                let newWithdrawals = parseFloat(document.getElementById("newWithdrawals").value);
-
-                db.collection("users").doc(uid).update({
-                    balance: newBalance,
-                    bonus: newBonus,
-                    withdrawals: newWithdrawals
-                }).then(() => {
-                    alert("Admin values updated.");
-                    user.balance = newBalance;
-                    user.bonus = newBonus;
-                    user.withdrawals = newWithdrawals;
-                    updateDisplay();
-                }).catch(error => {
-                    alert("Error updating values: " + error.message);
-                });
-            } else {
-                alert("Access denied.");
+            if (user.isAdmin) {
+                user.balance = parseFloat(document.getElementById("newBalance").value);
+                user.bonus = parseFloat(document.getElementById("newBonus").value);
+                user.withdrawals = parseFloat(document.getElementById("newWithdrawals").value);
+                saveUser();
+                updateDisplay();
+                alert('Admin values updated.');
             }
         }
 
+        // ... (Your existing withdrawal functions) ...
     </script>
 
 </body>
