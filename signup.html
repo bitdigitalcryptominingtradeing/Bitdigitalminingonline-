@@ -96,17 +96,30 @@
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  // Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyC8CJGR5x-iKyfs9J_p0aBdpn9-TWUERQs",
-  authDomain: "legal-trade-cryptocurrency.firebaseapp.com",
-  databaseURL: "https://legal-trade-cryptocurrency-default-rtdb.firebaseio.com",
-  projectId: "legal-trade-cryptocurrency",
-  storageBucket: "legal-trade-cryptocurrency.firebasestorage.app",
-  messagingSenderId: "461227057157",
-  appId: "1:461227057157:web:9262807e0aed807a7ebc6c",
-  measurementId: "G-JY7WMPNR0H"
-};
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U",
+    authDomain: "bitdigitalminingonline-40520.firebaseapp.com",
+    databaseURL: "https://bitdigitalminingonline-40520-default-rtdb.firebaseio.com",
+    projectId: "bitdigitalminingonline-40520",
+    storageBucket: "bitdigitalminingonline-40520.appspot.com",
+    messagingSenderId: "280416066270",
+    appId: "1:280416066270:web:210532fbb40fd13f25804f",
+    measurementId: "G-TGG8B41KGT"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
