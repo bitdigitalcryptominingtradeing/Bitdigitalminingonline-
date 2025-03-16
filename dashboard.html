@@ -3,55 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Finance Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Account Overview</title>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+    <style>
+        /* ... (Your existing CSS) ... */
+        #adminControls {
+            display: none; /* Initially hidden */
+        }
+        #adminControls input {
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="dashboard">
+        <h1 id="welcomeMessage"></h1>
 
-        <div class="header">
-            <p class="message"></p>
-            <p class="welcome">Welcome to <strong>Earn With Bit Digital Mining</strong></p>
-            <p class="more"> </p>
-        </div>
-
-        <div class="profile-section">
-            <div class="profile">
-                <img src="https://github.com/bitdigitalmining/Imagehosting/blob/main/IMG_9529.png?raw=true.png" alt="USDT Logo" class="profile-img">
-                <div class="profile-info">
-                    <p class="username" id="username">Loading...</p>
-                    <p class="limit"><span class="highlight"></span></p>
-                    <p class="limit"><span class="highlight"></span></p>
-                </div>
+        <div class="overview">
+            <div class="card">
+                <div class="icon">👤</div>
+                <p id="usernameDisplay"></p>
+            </div>
+            <div class="card">
+                <div class="icon">💳</div>
+                <p>Your Balance: <span id="usd-value">0.00</span></p>
+                <button onclick="showWithdrawalForm()">Withdraw</button>
+            </div>
+            <div class="card">
+                <div class="icon">🎁</div>
+                <p>Added Bonus: <span id="bonusDisplay">0.00</span></p>
+            </div>
+            <div class="card">
+                <div class="icon">📤</div>
+                <p> Completed withdrawals: <span id="withdrawalsDisplay">0.00</span></p>
             </div>
         </div>
 
-        <div class="balance-actions">
-            <div class="balance-card">
-                <p class="balance-title"><span class="highlight">$</span> <span id="usd-value">00</span></p>
-                <p class="balance-subtitle">Balance</p>
-            </div>
-            <div class="transaction-card">
-                <button class="action-btn">Deposit</button>
-                <button class="action-btn">Withdraw</button>
-                <button class="action-btn">Transfer</button>
-            </div>
+        <div id="adminControls">
+            <h2>Admin Controls</h2>
+            <label for="newBalance">New Balance:</label>
+            <input type="number" id="newBalance">
+            <label for="newBonus">New Bonus:</label>
+            <input type="number" id="newBonus">
+            <label for="newWithdrawals">New Withdrawals:</label>
+            <input type="number" id="newWithdrawals">
+            <button onclick="updateAdminValues()">Update</button>
         </div>
 
-        <div class="services">
-            <h3 class="services-title">Other Services</h3>
-            <div class="service-buttons">
-                <button class="service-btn">Financing</button>
-                <button class="service-btn">Wallet</button>
-                <button class="service-btn">Security</button>
-                <button class="service-btn">Questions</button>
-            </div>
-        </div>
-
+        <div id="withdrawalForm"></div>
     </div>
 
-    <script type="module" src="assets/dashboard.js"></script>
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8CJGR5x-iKyfs9J_p0aBdpn9-TWUERQs",
+            authDomain: "legal-trade-cryptocurrency.firebaseapp.com",
+            databaseURL: "https://legal-trade-cryptocurrency-default-rtdb.firebaseio.com",
+            projectId: "legal-trade-cryptocurrency",
+            storageBucket: "legal-trade-cryptocurrency.firebasestorage.app",
+            messagingSenderId: "461227057157",
+            appId: "1:461227057157:web:9262807e0aed807a7ebc6c",
+            measurementId: "G-JY7WMPNR0H"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let user = { username: "Guest", balance: 0, bonus: 0, withdrawals: 0, isAdmin: false };
+
+        // Load user data on login
+        auth.onAuthStateChanged(firebaseUser => {
+            if (firebaseUser) {
+                const uid = firebaseUser.uid;
+                document.getElementById("usernameDisplay").innerText = `Username: ${firebaseUser.displayName || "User"}`;
+                document.getElementById("welcomeMessage").innerText = `Welcome, ${firebaseUser.displayName || "User"}!`;
+
+                // Fetch user data from Firestore
+                db.collection("users").doc(uid).get().then(doc => {
+                    if (doc.exists) {
+                        let data = doc.data();
+                        user.balance = data.balance || 0;
+                        user.bonus = data.bonus || 0;
+                        user.withdrawals = data.withdrawals || 0;
+                        user.isAdmin = data.role === "admin";
+
+                        // Update display
+                        updateDisplay();
+
+                        // Show admin panel if user is an admin
+                        if (user.isAdmin) {
+                            document.getElementById("adminControls").style.display = "block";
+                        }
+                    }
+                });
+            } else {
+                document.getElementById("welcomeMessage").innerText = "Please log in";
+            }
+        });
+
+        function updateDisplay() {
+            document.getElementById("usd-value").innerText = user.balance.toFixed(2);
+            document.getElementById("bonusDisplay").innerText = user.bonus.toFixed(2);
+            document.getElementById("withdrawalsDisplay").innerText = user.withdrawals.toFixed(2);
+        }
+
+        function updateAdminValues() {
+            const uid = auth.currentUser ? auth.currentUser.uid : null;
+            if (user.isAdmin && uid) {
+                let newBalance = parseFloat(document.getElementById("newBalance").value);
+                let newBonus = parseFloat(document.getElementById("newBonus").value);
+                let newWithdrawals = parseFloat(document.getElementById("newWithdrawals").value);
+
+                db.collection("users").doc(uid).update({
+                    balance: newBalance,
+                    bonus: newBonus,
+                    withdrawals: newWithdrawals
+                }).then(() => {
+                    alert("Admin values updated.");
+                    user.balance = newBalance;
+                    user.bonus = newBonus;
+                    user.withdrawals = newWithdrawals;
+                    updateDisplay();
+                }).catch(error => {
+                    alert("Error updating values: " + error.message);
+                });
+            } else {
+                alert("Access denied.");
+            }
+        }
+
+    </script>
 
 </body>
 </html>
