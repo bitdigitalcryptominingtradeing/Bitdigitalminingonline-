@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register & Login</title>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Firebase SDK (Modular v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
 
     <style>
         body {
@@ -77,6 +77,7 @@
     <div class="container" id="registerForm">
         <h2>Register</h2>
         <input type="text" placeholder="Full Name" id="fullname" required>
+        <input type="text" placeholder="Username" id="username" required> <!-- Added username input -->
         <input type="email" placeholder="Email" id="email" required>
         <input type="tel" placeholder="Phone (e.g. +1234567890)" id="phone" required>
         <input type="password" placeholder="Password" id="password" required>
@@ -95,11 +96,14 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        // Firebase Configuration (Modular v9)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
         const firebaseConfig = {
-            apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U",
+            apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U", //**IMPORTANT: SECURE THIS!**
             authDomain: "bitdigitalminingonline-40520.firebaseapp.com",
-            databaseURL: "https://bitdigitalminingonline-40520-default-rtdb.firebaseio.com",
             projectId: "bitdigitalminingonline-40520",
             storageBucket: "bitdigitalminingonline-40520.appspot.com",
             messagingSenderId: "280416066270",
@@ -108,9 +112,9 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const database = firebase.database();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         function showLoading() {
             document.getElementById("loadingBanner").style.display = "block";
@@ -121,17 +125,18 @@
         }
 
         // Registration Function
-        function register() {
+        async function register() {
             let fullname = document.getElementById("fullname").value.trim();
+            let username = document.getElementById("username").value.trim(); // Get username
             let email = document.getElementById("email").value.trim();
             let phone = document.getElementById("phone").value.trim();
             let password = document.getElementById("password").value.trim();
             let security = document.getElementById("security").value.trim();
 
-            let phonePattern = /^\+\d{1,3}\d{7,}$/; 
-            let correctAnswer = "12"; 
+            let phonePattern = /^\+\d{1,3}\d{7,}$/;
+            let correctAnswer = "12";
 
-            if (!fullname || !email || !phone || !password || !security) {
+            if (!fullname || !username || !email || !phone || !password || !security) {
                 alert("All fields are required!");
                 return;
             }
@@ -146,27 +151,31 @@
 
             showLoading(); // Show loading banner
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    let userId = userCredential.user.uid;
-                    return database.ref('users/' + userId).set({
-                        fullName: fullname,
-                        email: email,
-                        phone: phone
-                    });
-                })
-                .then(() => {
-                    alert("Registration successful!");
-                    window.location.href = "dashboard.html";
-                })
-                .catch((error) => {
-                    alert(error.message);
-                    hideLoading(); // Hide banner if error occurs
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                const userId = user.uid;
+
+                // Store user data in Firestore
+                await setDoc(doc(db, "users", userId), {
+                    fullName: fullname,
+                    username: username, // Store username
+                    email: email,
+                    phone: phone
                 });
+
+                alert("Registration successful!");
+                window.location.href = "dashboard.html";
+
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                hideLoading(); // Ensure loading banner is hidden
+            }
         }
 
         // Login Function
-        function login() {
+        async function login() {
             let email = document.getElementById("loginEmail").value.trim();
             let password = document.getElementById("loginPassword").value.trim();
 
@@ -177,15 +186,15 @@
 
             showLoading(); // Show loading banner
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    alert("Login successful!");
-                    window.location.href = "dashboard.html";
-                })
-                .catch((error) => {
-                    alert(error.message);
-                    hideLoading(); // Hide banner if error occurs
-                });
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                alert("Login successful!");
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                hideLoading(); // Ensure loading banner is hidden
+            }
         }
 
         function showLogin() {
