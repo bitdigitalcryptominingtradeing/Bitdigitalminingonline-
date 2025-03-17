@@ -82,8 +82,8 @@
         <input type="tel" placeholder="Phone (e.g. +1234567890)" id="phone" required>
         <input type="password" placeholder="Password" id="password" required>
         <input type="text" placeholder="Security Question: 9 + 6 - 3 = ?" id="security" required>
-        <button class="register-btn" onclick="register()">Register</button>
-        <button class="switch-btn" onclick="showLogin()">Switch to Login</button>
+        <button class="register-btn" onclick="window.register()">Register</button>
+        <button class="switch-btn" onclick="window.showLogin()">Switch to Login</button>
     </div>
 
     <!-- Login Form -->
@@ -91,11 +91,11 @@
         <h2>Login</h2>
         <input type="email" placeholder="Email" id="loginEmail" required>
         <input type="password" placeholder="Password" id="loginPassword" required>
-        <button class="login-btn" onclick="login()">Login</button>
-        <button class="switch-btn" onclick="showRegister()">Switch to Register</button>
+        <button class="login-btn" onclick="window.login()">Login</button>
+        <button class="switch-btn" onclick="window.showRegister()">Switch to Register</button>
     </div>
 
-    <script>
+    <script type="module">
         // Firebase Configuration (Modular v9)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
@@ -116,16 +116,16 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        function showLoading() {
+        window.showLoading = function() {
             document.getElementById("loadingBanner").style.display = "block";
         }
 
-        function hideLoading() {
+        window.hideLoading = function() {
             document.getElementById("loadingBanner").style.display = "none";
         }
 
         // Registration Function
-        async function register() {
+        window.register = async function() {
             let fullname = document.getElementById("fullname").value.trim();
             let username = document.getElementById("username").value.trim(); // Get username
             let email = document.getElementById("email").value.trim();
@@ -149,7 +149,7 @@
                 return;
             }
 
-            showLoading(); // Show loading banner
+            window.showLoading(); // Show loading banner
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -170,12 +170,12 @@
             } catch (error) {
                 alert(error.message);
             } finally {
-                hideLoading(); // Ensure loading banner is hidden
+                window.hideLoading(); // Ensure loading banner is hidden
             }
         }
 
         // Login Function
-        async function login() {
+        window.login = async function() {
             let email = document.getElementById("loginEmail").value.trim();
             let password = document.getElementById("loginPassword").value.trim();
 
@@ -184,7 +184,7 @@
                 return;
             }
 
-            showLoading(); // Show loading banner
+            window.showLoading(); // Show loading banner
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
@@ -193,16 +193,16 @@
             } catch (error) {
                 alert(error.message);
             } finally {
-                hideLoading(); // Ensure loading banner is hidden
+                window.hideLoading(); // Ensure loading banner is hidden
             }
         }
 
-        function showLogin() {
+        window.showLogin = function() {
             document.getElementById("registerForm").classList.add("hidden");
             document.getElementById("loginForm").classList.remove("hidden");
         }
 
-        function showRegister() {
+        window.showRegister = function() {
             document.getElementById("loginForm").classList.add("hidden");
             document.getElementById("registerForm").classList.remove("hidden");
         }
