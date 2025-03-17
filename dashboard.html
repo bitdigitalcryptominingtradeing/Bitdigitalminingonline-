@@ -109,7 +109,33 @@
             box-sizing: border-box;
         }
 
+        /* Admin Panel */
+        #adminPanel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7);
+            color: #092135;
+            text-align: left;
+        }
+
+        #adminPanel input, #adminPanel button {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
     </style>
+    <!-- Firebase SDK (Modular v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
 </head>
 <body>
 
@@ -118,8 +144,7 @@
 
         <div class="overview">
             <div class="card">
-                <div class="icon">👤</div>
-                <p>Welcome user</p>
+                <div class="icon">👤 <span id="usernameDisplay"></span></div>
             </div>
             <div class="card">
                 <div class="icon">💳</div>
@@ -128,7 +153,7 @@
             </div>
             <div class="card">
                 <div class="icon">🎁</div>
-                <p>Added Bonus: 0.00</p>
+                <p>Added Bonus: <span id="bonus-value">0.00</span></p>
             </div>
             <div class="card">
                 <div class="icon">📤</div>
@@ -136,6 +161,7 @@
                 <button onclick="showTransactionForm('deposit')">Deposit</button>
             </div>
         </div>
+        <button id="adminButton" style="display:none;" onclick="showAdminPanel()">Admin</button>
     </div>
 
     <div id="transactionForm">
@@ -151,31 +177,147 @@
         <button onclick="processTransaction()">Confirm</button>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            loadUser();
-            updateBalance();
+    <div id="adminPanel">
+        <h2>Admin Panel</h2>
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId">
+        <label for="balance">Balance:</label>
+        <input type="number" id="balance">
+        <label for="bonus">Bonus:</label>
+        <input type="number" id="bonus">
+        <label for="completedWithdrawals">Completed Withdrawals:</label>
+        <input type="number" id="completedWithdrawals">
+        <button onclick="updateUserData()">Update User Data</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAEG26ipE7Vr9UZrJLINP84fep1HYRbL6U", //**IMPORTANT: SECURE THIS!**
+            authDomain: "bitdigitalminingonline-40520.firebaseapp.com",
+            projectId: "bitdigitalminingonline-40520",
+            storageBucket: "bitdigitalminingonline-40520.appspot.com",
+            messagingSenderId: "280416066270",
+            appId: "1:280416066270:web:210532fbb40fd13f25804f",
+            measurementId: "G-TGG8B41KGT"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        //UI elements
+        const adminButton = document.getElementById("adminButton");
+        const adminPanel = document.getElementById("adminPanel");
+
+        // Function to check if a user is an admin
+        async function isAdmin(uid) {
+            try {
+                const adminDocRef = doc(db, 'admins', uid);
+                const docSnapshot = await getDoc(adminDocRef);
+                return docSnapshot.exists();
+            } catch (error) {
+                console.error("Error checking admin status:", error);
+                return false;
+            }
+        }
+        // Check for authentication state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const uid = user.uid;
+
+                //Load Username
+                try {
+                    const userDocRef = doc(db, "users", uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        document.getElementById("usernameDisplay").innerText = `, ${userData.username}`;
+                    } else {
+                        console.log("User document not found");
+                        document.getElementById("usernameDisplay").innerText = ", User";
+                    }
+
+                } catch (e) {
+                    console.log("error retrieving the user: ", e)
+                }
+
+                //Retrieve all data if admin
+                const isUserAdmin = await isAdmin(uid);
+                if (isUserAdmin) {
+                    adminButton.style.display = "block";
+                }
+                else {
+                    adminButton.style.display = "none";
+                }
+                //Get user data, balance, bonus, withdrawal
+                updateData();
+
+            } else {
+                // User is signed out
+                window.location.href = "login.html";
+            }
         });
 
-        let user = { balance: 0 };
-        let transactionType = "withdraw"; // Default
+        async function updateData() {
+            const user = auth.currentUser;
+            if (!user) {
+                return;
+            }
+            const uid = user.uid;
 
-        function loadUser() {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                user = JSON.parse(storedUser);
+            try {
+                const userDocRef = doc(db, "users", uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    document.getElementById("usd-value").innerText = userData.balance || 0;
+                    document.getElementById("bonus-value").innerText = userData.bonus || 0;
+                    document.getElementById("completed-withdrawals").innerText = userData.completedWithdrawals || 0;
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        }
+        //admin action
+        window.showAdminPanel = function () {
+            const user = auth.currentUser;
+            if (!user) {
+                return;
+            }
+            adminPanel.style.display = "block";
+        }
+
+        //admin function
+        window.updateUserData = async function () {
+            const userId = document.getElementById("userId").value;
+            const balance = parseFloat(document.getElementById("balance").value);
+            const bonus = parseFloat(document.getElementById("bonus").value);
+            const completedWithdrawals = parseFloat(document.getElementById("completedWithdrawals").value);
+
+            try {
+                const userDocRef = doc(db, "users", userId);
+                await updateDoc(userDocRef, {
+                    balance: balance,
+                    bonus: bonus,
+                    completedWithdrawals: completedWithdrawals
+                });
+                alert("User data updated successfully!");
+            } catch (error) {
+                console.error("Error updating user data:", error);
+                alert("Error updating user data. See console for details.");
+            } finally {
+                adminPanel.style.display = "none";
             }
         }
 
-        function saveUser() {
-            localStorage.setItem('user', JSON.stringify(user));
-        }
-
-        function updateBalance() {
-            document.getElementById("usd-value").innerText = user.balance.toFixed(2);
-        }
-
-        function showTransactionForm(type) {
+        window.showTransactionForm = function (type) {
             transactionType = type;
             document.getElementById("transactionForm").style.display = "block";
 
@@ -186,7 +328,7 @@
             }
         }
 
-        function processTransaction() {
+        window.processTransaction = function () {
             const fullName = document.getElementById("fullName").value;
             const accountNumber = document.getElementById("accountNumber").value;
             const bankName = document.getElementById("bankName").value;
@@ -197,20 +339,46 @@
                 return;
             }
 
+            const user = auth.currentUser;
+            if (!user) {
+                return;
+            }
+            const uid = user.uid;
+
             if (transactionType === "withdraw") {
-                if (amount > user.balance) {
+                const userBalance = parseFloat(document.getElementById("usd-value").innerText);
+
+                if (amount > userBalance) {
                     alert("Insufficient balance.");
                     return;
                 }
-                user.balance -= amount;
-                alert("Successful withdrawal processing. Contact Coach Banana.");
+
+                try {
+                    const userDocRef = doc(db, "users", uid);
+                    await updateDoc(userDocRef, {
+                        balance: userBalance - amount,
+                    });
+                    alert("Withdrawal successful! Awaiting coach banana approval.");
+                    updateData();
+                }
+                catch (e) {
+                    console.log("Error pulling data:", e)
+                }
             } else if (transactionType === "deposit") {
-                user.balance += amount;
-                alert("Deposit successful!");
+                const userBalance = parseFloat(document.getElementById("usd-value").innerText);
+                try {
+                    const userDocRef = doc(db, "users", uid);
+                    await updateDoc(userDocRef, {
+                        balance: userBalance + amount,
+                    });
+                    alert("Deposit successful!");
+                    updateData();
+                }
+                catch (e) {
+                    console.log("Error pulling data:", e)
+                }
             }
 
-            saveUser();
-            updateBalance();
             document.getElementById("transactionForm").style.display = "none";
         }
     </script>
